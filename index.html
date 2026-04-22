@@ -2,81 +2,73 @@
 <html lang="sw">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big P - Polini MT-10 Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Big P - MT-10 Polini Fixed</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #3498db; font-family: sans-serif; }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 10; }
-        .bar { width: 180px; height: 15px; background: #444; border: 2px solid #fff; border-radius: 5px; }
-        #health { width: 100%; height: 100%; background: #e74c3c; transition: 0.2s; }
+        body { margin: 0; overflow: hidden; background: #3498db; font-family: 'Arial', sans-serif; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; background: #3498db; }
         
-        #pauseBtn { 
-            position: absolute; top: 10px; right: 10px; z-index: 100;
-            padding: 10px 20px; background: #f1c40f; border: none; 
-            font-weight: bold; cursor: pointer; border-radius: 5px;
-        }
-
-        #startPrompt, #gameOver, #pauseMenu { 
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 10; text-shadow: 2px 2px 4px black; }
+        .bar { width: 150px; height: 15px; background: #444; border: 2px solid #fff; border-radius: 8px; overflow: hidden; }
+        #health { width: 100%; height: 100%; background: #ff4d4d; transition: 0.2s; }
+        
+        .overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
             align-items: center; justify-content: center; color: white; z-index: 200;
         }
         
-        .menu-btn { 
-            padding: 20px 40px; font-size: 22px; cursor: pointer; 
+        .big-btn { 
+            padding: 25px 60px; font-size: 28px; cursor: pointer; 
             background: #2ecc71; border: none; color: white; 
-            border-radius: 15px; margin: 15px; font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-radius: 50px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            transition: 0.2s;
         }
+        .big-btn:active { transform: scale(0.95); background: #27ae60; }
 
-        #brakeIndicator { 
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
-            color: #e74c3c; font-weight: bold; display: none; font-size: 28px; 
-            text-shadow: 2px 2px 4px #000;
+        #brakeNotice { 
+            position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); 
+            color: #ff4d4d; font-weight: bold; display: none; font-size: 35px; text-shadow: 3px 3px 6px #000;
         }
+        #pauseBtn { position: absolute; top: 10px; right: 10px; z-index: 100; padding: 10px 20px; background: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <button id="pauseBtn" onclick="togglePause()">PAUSE</button>
 
-    <div id="startPrompt">
-        <h1 style="font-size: 40px; margin-bottom: 10px;">🏍️ MT-10 POLINI</h1>
-        <p style="margin-bottom: 20px;">Shikilia (Hold) popote kufunga **BREKI**</p>
-        <button class="menu-btn" onclick="startGame()">ANZA MCHEZO</button>
+    <div id="startPrompt" class="overlay">
+        <h1 style="font-size: 45px; margin-bottom: 5px;">🏍️ MT-10 POLINI</h1>
+        <p style="margin-bottom: 30px; font-size: 18px;">Gusa na ushikilie popote kwa **BREKI**</p>
+        <button class="big-btn" onclick="startGame()">ANZA MCHEZO</button>
     </div>
 
-    <div id="pauseMenu" style="display:none;">
+    <div id="pauseMenu" class="overlay" style="display:none;">
         <h1>MCHEZO UMESIMAMA</h1>
-        <button class="menu-btn" onclick="togglePause()">ENDELEA</button>
+        <button class="big-btn" onclick="togglePause()">ENDELEA</button>
     </div>
 
-    <div id="gameOver" style="display:none;">
-        <h1 style="color: #e74c3c;">💥 GAME OVER!</h1>
-        <h2 id="finalScore"></h2>
-        <button class="menu-btn" onclick="location.reload()">JARIBU TENA</button>
+    <div id="gameOver" class="overlay" style="display:none;">
+        <h1 style="color: #ff4d4d; font-size: 40px;">💥 GAME OVER!</h1>
+        <h2 id="finalScore" style="margin-bottom: 20px;"></h2>
+        <button class="big-btn" onclick="location.reload()">JARIBU TENA</button>
     </div>
 
     <div id="ui">
-        <div>AFYA:</div>
+        <div>AFYA YA PIKIPIKI:</div>
         <div class="bar"><div id="health"></div></div>
-        <h2 id="score">ALAMA: 0</h2>
-        <div>KASI: <span id="speedVal">0</span> KM/H</div>
+        <h2 id="score" style="margin: 10px 0; font-size: 30px;">ALAMA: 0</h2>
+        <div style="font-size: 20px;">KASI: <span id="speedVal">0</span> km/h</div>
     </div>
 
-    <div id="brakeIndicator">!!! BREKI !!!</div>
+    <div id="brakeNotice">!!! BREKI !!!</div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const healthBar = document.getElementById("health");
-        const scoreText = document.getElementById("score");
-        const speedNum = document.getElementById("speedVal");
-        const brakeUI = document.getElementById("brakeIndicator");
-
+        
         const imgPikipiki = new Image();
         imgPikipiki.src = "pikipiki.png"; 
 
@@ -89,34 +81,49 @@
         let speed = 0;
         let frame = 0;
         
-        const bike = { x: 50, y: 0, targetY: 0, w: 200, h: 140 }; 
-        const stone = { x: 0, y: 0, r: 25 };
+        const bike = { x: 50, y: 0, targetY: 0, w: 220, h: 150 }; 
+        const stone = { x: 0, y: 0, r: 30 };
         const particles = [];
 
-        function setup() {
+        function initLayout() {
             viewW = window.innerWidth;
             viewH = window.innerHeight;
             canvas.width = viewW;
             canvas.height = viewH;
-            groundY = viewH * 0.7;
+            groundY = viewH * 0.75;
             bike.y = groundY - bike.h;
             bike.targetY = bike.y;
-            stone.x = viewW + 300;
+            stone.x = viewW + 500;
             stone.y = groundY + 30;
         }
 
-        // Hakikisha kila kitu kimepakiwa kabla ya kuanza
-        window.onload = setup;
-        window.onresize = setup;
+        window.addEventListener("load", initLayout);
+        window.addEventListener("resize", initLayout);
+
+        // Kuanza Mchezo
+        function startGame() {
+            console.log("Kitufe kimebonyezwa!");
+            document.getElementById("startPrompt").style.display = "none";
+            gameActive = true;
+            isPaused = false;
+            speed = 40;
+            animate();
+        }
+
+        function togglePause() {
+            if(!gameActive) return;
+            isPaused = !isPaused;
+            document.getElementById("pauseMenu").style.display = isPaused ? "flex" : "none";
+        }
 
         // Controls
-        window.addEventListener("mousedown", () => { if(gameActive && !isPaused) isBraking = true; });
-        window.addEventListener("mouseup", () => isBraking = false);
-        window.addEventListener("touchstart", (e) => { 
-            if(gameActive && !isPaused) isBraking = true; 
-            if(gameActive) e.preventDefault(); 
-        }, {passive: false});
-        window.addEventListener("touchend", () => isBraking = false);
+        const startBraking = () => { if(gameActive && !isPaused) isBraking = true; };
+        const stopBraking = () => isBraking = false;
+
+        window.addEventListener("mousedown", startBraking);
+        window.addEventListener("mouseup", stopBraking);
+        window.addEventListener("touchstart", (e) => { startBraking(); e.preventDefault(); }, {passive: false});
+        window.addEventListener("touchend", stopBraking);
 
         window.addEventListener("mousemove", (e) => {
             if(gameActive && !isPaused) bike.targetY = e.clientY - bike.h/2;
@@ -128,22 +135,7 @@
             }
         }, {passive: false});
 
-        function togglePause() {
-            if(!gameActive) return;
-            isPaused = !isPaused;
-            document.getElementById("pauseMenu").style.display = isPaused ? "flex" : "none";
-        }
-
-        function startGame() {
-            console.log("Game Starting...");
-            document.getElementById("startPrompt").style.display = "none";
-            gameActive = true;
-            isPaused = false;
-            speed = 50;
-            requestAnimationFrame(update);
-        }
-
-        function drawWorld() {
+        function draw() {
             ctx.clearRect(0, 0, viewW, viewH);
 
             // Anga
@@ -151,18 +143,18 @@
             ctx.fillRect(0, 0, viewW, groundY);
 
             // Ardhi ya Polini
+            ctx.fillStyle = "#d2b48c";
             ctx.beginPath();
             ctx.moveTo(0, viewH);
-            ctx.fillStyle = "#d2b48c";
-            for (let x = 0; x <= viewW; x += 10) {
-                let y = Math.sin((x + frame) * 0.005) * 20 + groundY;
+            for (let x = 0; x <= viewW; x += 20) {
+                let y = Math.sin((x + frame) * 0.005) * 15 + groundY;
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(viewW, viewH);
             ctx.fill();
 
             // Jiwe
-            ctx.fillStyle = "#7f8c8d";
+            ctx.fillStyle = "#555";
             ctx.beginPath(); ctx.arc(stone.x, stone.y, stone.r, 0, Math.PI*2); ctx.fill();
 
             // Moshi
@@ -174,64 +166,65 @@
             });
 
             // Chora Pikipiki
-            if (imgPikipiki.complete) {
+            if (imgPikipiki.complete && imgPikipiki.naturalWidth !== 0) {
                 ctx.drawImage(imgPikipiki, bike.x, bike.y, bike.w, bike.h);
             } else {
-                // Kama picha haijafika, chora box la rangi
-                ctx.fillStyle = "blue";
+                ctx.fillStyle = "#2980b9";
                 ctx.fillRect(bike.x, bike.y, bike.w, bike.h);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 20px Arial";
+                ctx.fillText("MT-10 Loading...", bike.x + 20, bike.y + 70);
             }
         }
 
-        function update() {
+        function animate() {
             if (!gameActive) return;
-            if (isPaused) {
-                requestAnimationFrame(update);
-                return;
-            }
-
-            if (isBraking) {
-                speed -= 1.5;
-                if (speed < 20) speed = 20;
-                brakeUI.style.display = "block";
-                particles.push({ x: bike.x + 20, y: bike.y + bike.h - 10, s: Math.random()*8+2, o: 0.8 });
-            } else {
-                speed += 0.2;
-                if (speed > 100) speed = 100;
-                brakeUI.style.display = "none";
-            }
-
-            frame += speed * 0.2;
-            score += speed * 0.01;
-            bike.y += (bike.targetY - bike.y) * 0.1;
-
-            stone.x -= speed * 0.15;
-            if (stone.x < -100) {
-                stone.x = viewW + 300;
-                stone.y = groundY + (Math.random() * 150 - 50);
-            }
-
-            // Collision
-            let dx = (bike.x + bike.w/2) - stone.x;
-            let dy = (bike.y + bike.h/2) - stone.y;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 60) {
-                health -= 20;
-                stone.x = -200;
-                if (health <= 0) {
-                    gameActive = false;
-                    document.getElementById("gameOver").style.display = "flex";
-                    document.getElementById("finalScore").innerText = "Alama: " + Math.floor(score);
+            if (!isPaused) {
+                if (isBraking) {
+                    speed -= 1.5;
+                    if (speed < 15) speed = 15;
+                    document.getElementById("brakeNotice").style.display = "block";
+                    particles.push({ x: bike.x + 30, y: bike.y + bike.h - 10, s: Math.random()*12+3, o: 0.8 });
+                } else {
+                    speed += 0.2;
+                    if (speed > 120) speed = 120;
+                    document.getElementById("brakeNotice").style.display = "none";
                 }
+
+                frame += speed * 0.2;
+                score += speed * 0.01;
+                bike.y += (bike.targetY - bike.y) * 0.1;
+
+                stone.x -= speed * 0.25;
+                if (stone.x < -100) {
+                    stone.x = viewW + 300;
+                    stone.y = groundY + (Math.random() * 100 - 10);
+                }
+
+                // Collision Detection
+                let bx = bike.x + bike.w/2;
+                let by = bike.y + bike.h/2;
+                let dist = Math.sqrt((bx-stone.x)**2 + (by-stone.y)**2);
+                if (dist < 70) {
+                    health -= 25;
+                    stone.x = -200;
+                    document.getElementById("health").style.width = health + "%";
+                    if (health <= 0) {
+                        gameActive = false;
+                        document.getElementById("gameOver").style.display = "flex";
+                        document.getElementById("finalScore").innerText = "Alama Ulizopata: " + Math.floor(score);
+                    }
+                }
+
+                document.getElementById("score").innerText = "ALAMA: " + Math.floor(score);
+                document.getElementById("speedVal").innerText = Math.floor(speed);
+                draw();
             }
-
-            healthBar.style.width = health + "%";
-            scoreText.innerText = "ALAMA: " + Math.floor(score);
-            speedNum.innerText = Math.floor(speed);
-
-            drawWorld();
-            requestAnimationFrame(update);
+            requestAnimationFrame(animate);
         }
+        
+        // Hii inahakikisha mchezo unachora mara ya kwanza hata kabla ya kuanza
+        setTimeout(draw, 500);
     </script>
 </body>
 </html>
