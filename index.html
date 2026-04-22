@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pikipiki Polini 4K - GitHub Edition</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: 'Arial', sans-serif; }
+        canvas { display: block; background: #87CEEB; }
+        
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+
+        #game-over {
+            display: none; background: rgba(0,0,0,0.85); padding: 50px;
+            border-radius: 30px; border: 4px solid #f39c12; text-align: center;
+            pointer-events: auto; color: white; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        button {
+            padding: 15px 40px; font-size: 24px; background: #27ae60;
+            color: white; border: none; border-radius: 10px; cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background: #2ecc71; transform: scale(1.1); }
+        
+        #score-display {
+            position: absolute; top: 20px; left: 20px; color: white;
+            font-size: 30px; text-shadow: 2px 2px 5px black;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="score-display">Alama: 0</div>
+        <div id="game-over">
+            <h1 style="color: #e74c3c; font-size: 80px; margin: 0;">AJALI!</h1>
+            <p id="final-score" style="font-size: 30px;">Alama Zako: 0</p>
+            <button onclick="restartGame()">CHEZA TENA</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gameOverUI = document.getElementById("game-over");
+        const scoreDisplay = document.getElementById("score-display");
+
+        // 4K Resolution Setup
+        function setup4K() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = window.innerWidth + "px";
+            canvas.style.height = window.innerHeight + "px";
+            ctx.scale(dpr, dpr);
+        }
+        setup4K();
+
+        // Mipangilio ya Mchezo
+        let frame = 0;
+        let score = 0;
+        let gameActive = true;
+        let particles = [];
+        let pikipiki = { x: 100, y: 300, targetY: 300, w: 80, h: 50 };
+        let stone = { x: window.innerWidth + 100, y: 0, r: 30 };
+
+        // Udhibiti (Input)
+        window.addEventListener("mousemove", (e) => {
+            if(gameActive) pikipiki.targetY = e.clientY - 25;
+        });
+
+        // Sauti (Feki - zinatengenezwa na kodi)
+        function playCrashSound() {
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(100, actx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.5, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.5);
+            osc.start();
+            osc.stop(actx.currentTime + 0.5);
+        }
+
+        function createParticle() {
+            particles.push({
+                x: pikipiki.x + 5,
+                y: pikipiki.y + 40,
+                s: Math.random() * 15 + 5,
+                o: 1
+            });
+        }
+
+        function drawWorld() {
+            // Anga
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, "#2980b9");
+            grad.addColorStop(1, "#87CEEB");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+            // Milima (Polini)
+            ctx.beginPath();
+            ctx.moveTo(0, window.innerHeight);
+            ctx.fillStyle = "#27ae60";
+            for (let x = 0; x <= window.innerWidth; x += 10) {
+                let y = Math.sin((x + frame) * 0.005) * 60 + (window.innerHeight - 150);
+                ctx.lineTo(x, y);
+                // Weka jiwe juu ya muinuko
+                if (Math.floor(x) === Math.floor(stone.x)) stone.y = y - 10;
+            }
+            ctx.lineTo(window.innerWidth, window.innerHeight);
+            ctx.fill();
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            frame += 8;
+            score += 0.1;
+            scoreDisplay.innerText = "Alama: " + Math.floor(score);
+
+            // Smooth Movement
+            pikipiki.y += (pikipiki.targetY - pikipiki.y) * 0.1;
+
+            // Stone Movement
+            stone.x -= 10;
+            if (stone.x < -100) stone.x = window.innerWidth + Math.random() * 500;
+
+            // Particle System
+            createParticle();
+            particles.forEach((p, i) => {
+                p.x -= 5; p.y -= 1; p.o -= 0.02; p.s += 0.5;
+                if (p.o <= 0) particles.splice(i, 1);
+                ctx.fillStyle = `rgba(255,255,255,${p.o})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Stone
+            ctx.fillStyle = "#555";
+            ctx.beginPath();
+            ctx.arc(stone.x, stone.y, stone.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Bike (Body)
+            ctx.fillStyle = "#f39c12";
+            ctx.fillRect(pikipiki.x, pikipiki.y, pikipiki.w, pikipiki.h);
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(pikipiki.x + 15, pikipiki.y + 50, 15, 0, Math.PI * 2);
+            ctx.arc(pikipiki.x + 65, pikipiki.y + 50, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Collision Detection
+            let dx = pikipiki.x + 40 - stone.x;
+            let dy = pikipiki.y + 25 - stone.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < stone.r + 30) {
+                endGame();
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            gameActive = false;
+            playCrashSound();
+            gameOverUI.style.display = "block";
+            document.getElementById("final-score").innerText = "Alama Zako: " + Math.floor(score);
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
+        // Anza Mchezo
+        drawWorld();
+        update();
+        
+        // Auto-resize kwa 4K
+        window.onresize = setup4K;
+    </script>
+</body>
+</html>
