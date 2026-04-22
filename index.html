@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big P - Mjini Edition</title>
+    <title>Big P - Mjini Moja kwa Moja</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         canvas { display: block; width: 100vw; height: 100vh; }
         #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 2px 2px 4px #000; }
-        .bar { width: 250px; height: 25px; background: #444; border: 3px solid #fff; border-radius: 5px; overflow: hidden; }
-        #health { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4d4d, #e74c3c); transition: 0.3s; }
+        .bar { width: 250px; height: 15px; background: #444; border: 2px solid #fff; border-radius: 10px; overflow: hidden; }
+        #health { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4d4d, #e74c3c); transition: 0.2s; }
         #startPrompt, #gameOver { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; color: white; z-index: 30; text-align: center;
+            align-items: center; justify-content: center; color: white; z-index: 30;
         }
-        button { padding: 15px 40px; font-size: 22px; cursor: pointer; background: #2ecc71; border: none; color: white; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+        button { padding: 15px 40px; font-size: 20px; cursor: pointer; background: #2ecc71; border: none; color: white; border-radius: 50px; font-weight: bold; }
         button:hover { background: #27ae60; transform: scale(1.05); }
     </style>
 </head>
 <body>
 
     <div id="startPrompt">
-        <h1>🏙️ BIG P - MJINI RUN</h1>
-        <p>Gusa screen au tumia mouse kukwepa mawe barabarani!</p>
+        <h1 style="color: #3498db;">🔵🔴 BIG P - MJINI RUN</h1>
+        <p>Gusa screen au tumia mouse kukwepa mawe!</p>
         <button onclick="startGame()">WASHA INJINI</button>
     </div>
 
     <div id="ui">
-        <div>AFYA YA PIKIPIKI:</div>
+        <div>AFYA YA MT-10:</div>
         <div class="bar"><div id="health"></div></div>
-        <h1 id="score">ALAMA: 0</h1>
-        <div style="font-size: 20px;">KASI: <span id="speed">0</span> KM/H</div>
+        <h1 id="score" style="margin: 5px 0;">ALAMA: 0</h1>
+        <div>KASI: <span id="speedDisplay">0</span> KM/H</div>
     </div>
 
     <div id="gameOver" style="display:none;">
-        <h1>💥 IMEGONGWA!</h1>
+        <h1 style="color: #e74c3c;">💥 IMEGONGWA!</h1>
         <h2 id="finalScore"></h2>
         <button onclick="restartGame()">JARIBU TENA</button>
     </div>
@@ -47,94 +47,50 @@
         const ctx = canvas.getContext("2d");
         const healthBar = document.getElementById("health");
         const scoreText = document.getElementById("score");
-        const speedNum = document.getElementById("speed");
+        const speedNum = document.getElementById("speedDisplay");
         const gameOverUI = document.getElementById("gameOver");
         const startPrompt = document.getElementById("startPrompt");
         const finalScoreText = document.getElementById("finalScore");
 
         const imgPikipiki = new Image();
-        imgPikipiki.src = "pikipiki.png"; 
+        imgPikipiki.src = "pikipiki.png"; // Picha yako ileile
 
-        let viewW, viewH, groundY;
+        let viewW, viewH;
         let gameActive = false;
         let score = 0;
         let health = 100;
         let speed = 0;
-        let targetSpeed = 60;
         let frame = 0;
+        let bgOffset = 0;
         
-        const bike = { x: 80, y: 0, targetY: 0, w: 120, h: 90 };
+        // MAREKEBISHO YA UKUBWA (Kubwa kidogo kuliko ya kwanza, lakini isizibe kila kitu)
+        const bike = { x: 80, y: 0, targetY: 0, w: 220, h: 140 }; 
         const stone = { x: 0, y: 0, r: 25 };
-        const buildings = [];
-        const particles = [];
-
-        // Unda majengo ya mbali
-        function createBuildings() {
-            for(let i=0; i<15; i++) {
-                buildings.push({
-                    x: i * 150,
-                    w: 80 + Math.random() * 100,
-                    h: 150 + Math.random() * 300,
-                    color: `hsl(${200 + Math.random()*20}, 30%, ${20 + Math.random()*20}%)`
-                });
-            }
-        }
-
-        // --- SAUTI ---
-        let audioCtx, engineOsc, engineGain;
-        function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            engineOsc = audioCtx.createOscillator();
-            engineGain = audioCtx.createGain();
-            engineOsc.type = 'sawtooth';
-            engineOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
-            engineGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            engineOsc.connect(engineGain);
-            engineGain.connect(audioCtx.destination);
-            engineOsc.start();
-        }
-
-        function playCrashSound() {
-            if (!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let g = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.connect(g);
-            g.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-        }
 
         function setup() {
             viewW = window.innerWidth;
             viewH = window.innerHeight;
             canvas.width = viewW;
             canvas.height = viewH;
-            groundY = viewH * 0.75;
-            bike.y = groundY - bike.h/2;
+            bike.y = viewH / 2 - bike.h / 2;
             bike.targetY = bike.y;
-            stone.x = viewW + 100;
-            stone.y = groundY + (Math.random() * 100 - 50);
-            createBuildings();
+            stone.x = viewW + 300;
         }
         setup();
 
         function startGame() {
             startPrompt.style.display = "none";
             gameActive = true;
-            initAudio();
             update();
         }
 
         window.addEventListener("mousemove", (e) => {
-            if(gameActive) bike.targetY = Math.max(groundY - 50, Math.min(e.clientY - bike.h/2, viewH - 100));
+            if(gameActive) bike.targetY = Math.max(50, Math.min(e.clientY - bike.h/2, viewH - 150));
         });
 
         window.addEventListener("touchmove", (e) => {
             if(gameActive) {
-                bike.targetY = Math.max(groundY - 50, Math.min(e.touches[0].clientY - bike.h/2, viewH - 100));
+                bike.targetY = Math.max(50, Math.min(e.touches[0].clientY - bike.h/2, viewH - 150));
                 e.preventDefault();
             }
         }, {passive: false});
@@ -142,121 +98,83 @@
         function drawWorld() {
             ctx.clearRect(0, 0, viewW, viewH);
 
-            // 1. Anga (Usiku wa mjini)
-            let skyGrad = ctx.createLinearGradient(0,0,0,groundY);
-            skyGrad.addColorStop(0, "#1a1a2e");
-            skyGrad.addColorStop(1, "#16213e");
-            ctx.fillStyle = skyGrad;
-            ctx.fillRect(0, 0, viewW, viewH);
+            // 1. CHORA BACKGROUND INAYOJIRUDIA (Kutoka kwenye picha yenyewe)
+            if (imgPikipiki.complete && imgPikipiki.naturalWidth !== 0) {
+                bgOffset -= speed * 0.1; // Background inasogea taratibu
+                if(bgOffset <= -viewW) bgOffset = 0;
 
-            // 2. Majengo (Parallax)
-            buildings.forEach(b => {
-                b.x -= speed * 0.02;
-                if (b.x + b.w < 0) b.x = viewW + 20;
-                ctx.fillStyle = b.color;
-                ctx.fillRect(b.x, groundY - b.h, b.w, b.h);
-                // Madirisha
-                ctx.fillStyle = "#f1c40f33";
-                for(let j=0; j<b.h/40; j++) {
-                    ctx.fillRect(b.x + 10, groundY - b.h + 20 + (j*40), b.w - 20, 15);
-                }
-            });
+                // Tunachora picha mbili zinazofuatana ili kujaza screen
+                ctx.drawImage(imgPikipiki, bgOffset, 0, viewW, viewH);
+                ctx.drawImage(imgPikipiki, bgOffset + viewW, 0, viewW, viewH);
+                
+                // --- ONGEZA ATHARI YA TAA ZA BLUE/NYEKUNDU ---
+                // Taa zinaenda kulingana na frame ili zifanane na zile za kwenye picha
+                frame++;
+                let redFlash = Math.sin(frame * 0.05) * 0.3 + 0.5;
+                let blueFlash = Math.cos(frame * 0.05) * 0.3 + 0.5;
 
-            // 3. Barabara (Lami)
-            ctx.fillStyle = "#333";
-            ctx.fillRect(0, groundY, viewW, viewH - groundY);
+                ctx.fillStyle = `rgba(231, 76, 60, ${redFlash * 0.15})`; // Red
+                ctx.fillRect(0, 0, viewW, viewH);
+                ctx.fillStyle = `rgba(52, 152, 219, ${blueFlash * 0.15})`; // Blue
+                ctx.fillRect(0, 0, viewW, viewH);
+                // ------------------------------------------
 
-            // Mistari ya Barabara
-            ctx.strokeStyle = "#fff";
-            ctx.setLineDash([40, 40]);
-            ctx.lineDashOffset = frame * 2;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(0, groundY + 50); ctx.lineTo(viewW, groundY + 50);
-            ctx.moveTo(0, viewH - 20); ctx.lineTo(viewW, viewH - 20);
-            ctx.stroke();
-            ctx.setLineDash([]);
+            } else {
+                // Kama picha haijapakiwa, weka giza
+                ctx.fillStyle = "#000"; ctx.fillRect(0, 0, viewW, viewH);
+            }
 
-            // Mstari wa njano katikati
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 6;
-            ctx.setLineDash([60, 30]);
-            ctx.beginPath();
-            ctx.moveTo(0, groundY + (viewH - groundY)/2);
-            ctx.lineTo(viewW, groundY + (viewH - groundY)/2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // 4. Jiwe (Kikwazo)
-            ctx.fillStyle = "#555";
+            // 2. CHORA JIWE (Kikwazo cha giza kidogo)
+            ctx.fillStyle = "rgba(100, 100, 100, 0.8)";
             ctx.beginPath(); ctx.arc(stone.x, stone.y, stone.r, 0, Math.PI*2); ctx.fill();
 
-            // 5. Moshi wa Pikipiki
-            particles.forEach((p, i) => {
-                p.x -= speed * 0.1; p.y -= 0.5; p.o -= 0.02;
-                if (p.o <= 0) particles.splice(i, 1);
-                ctx.fillStyle = `rgba(255,255,255,${p.o})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
-            });
-
-            // 6. Chora Pikipiki
-            if (imgPikipiki.complete && imgPikipiki.naturalWidth !== 0) {
+            // 3. CHORA PIKIPIKI (Inakaa juu ya background)
+            if (imgPikipiki.complete) {
+                // Tunasafisha muonekano kidogo ili asizibe kila kitu
+                ctx.globalAlpha = 0.95; 
                 ctx.drawImage(imgPikipiki, bike.x, bike.y, bike.w, bike.h);
-            } else {
-                ctx.fillStyle = "#f1c40f"; 
-                ctx.fillRect(bike.x, bike.y, bike.w, bike.h);
-                ctx.fillStyle = "white"; ctx.fillText("PIKIPIKI", bike.x+20, bike.y+40);
+                ctx.globalAlpha = 1;
             }
         }
 
         function update() {
             if (!gameActive) return;
 
-            frame += speed * 0.2;
-            score += speed * 0.01;
+            score += 0.2;
             bike.y += (bike.targetY - bike.y) * 0.1;
-            speed += (targetSpeed - speed) * 0.005;
+            speed = 70; // Kasi ya kudumu
 
-            if (engineOsc) engineOsc.frequency.setTargetAtTime(40 + speed, audioCtx.currentTime, 0.1);
-
+            // Jiwe linakuja kwa kasi
             stone.x -= speed * 0.15;
             if (stone.x < -100) {
-                stone.x = viewW + 200;
-                stone.y = groundY + 20 + Math.random() * (viewH - groundY - 60);
+                stone.x = viewW + 500;
+                // Jiwe linatokea popote kwenye screen sasa, siyo chini tu
+                stone.y = 100 + Math.random() * (viewH - 200);
             }
 
-            if (Math.random() < 0.2) {
-                particles.push({ x: bike.x, y: bike.y + bike.h - 10, s: Math.random()*6+2, o: 0.8 });
-            }
-
-            // Mgongano (Collision)
+            // Mgongano
             let dx = (bike.x + bike.w/2) - stone.x;
             let dy = (bike.y + bike.h/2) - stone.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < stone.r + 30) {
-                health -= 2;
-                playCrashSound();
-                stone.x = -200; // Ondoa jiwe baada ya kugonga
-                if (health <= 0) endGame();
+            if (dist < 60) {
+                health -= 25;
+                stone.x = -200;
+                if (health <= 0) {
+                    gameActive = false;
+                    finalScoreText.innerText = "Alama Ulizopata: " + Math.floor(score);
+                    gameOverUI.style.display = "flex";
+                }
             }
 
             healthBar.style.width = health + "%";
             scoreText.innerText = "ALAMA: " + Math.floor(score);
-            speedNum.innerText = Math.floor(speed);
+            speedNum.innerText = speed;
 
             drawWorld();
             requestAnimationFrame(update);
         }
 
-        function endGame() {
-            gameActive = false;
-            if (engineGain) engineGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
-            gameOverUI.style.display = "flex";
-            finalScoreText.innerText = "Ulipata Alama: " + Math.floor(score);
-        }
-
         function restartGame() { location.reload(); }
-
         window.onresize = setup;
     </script>
 </body>
