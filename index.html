@@ -3,187 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pikipiki Polini: Safari ya Big P (4K)</title>
+    <title>Majaribio - Big P Game</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: 'Courier New', Courier, monospace; user-select: none; }
-        canvas { display: block; background: #87CEEB; }
-        
-        /* UI Elements */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        .hud-box { position: absolute; background: rgba(0,0,0,0.6); border: 2px solid #3498db; padding: 10px; color: white; border-radius: 5px; }
-        
-        /* Top Left: Health & Score */
-        #top-left { top: 20px; left: 20px; min-width: 200px; }
-        .bar-container { width: 100%; height: 20px; background: #333; border: 1px solid #fff; margin-bottom: 5px; }
-        #health-bar { width: 100%; height: 100%; background: #e74c3c; transition: width 0.2s; }
-        #score-text { font-size: 20px; color: #f1c40f; }
-
-        /* Top Center: Mission */
-        #mission-box { top: 20px; left: 50%; transform: translateX(-50%); text-align: center; border-color: #f1c40f; }
-        #mission-title { font-size: 14px; color: #f1c40f; margin: 0; }
-        #mission-text { font-size: 24px; font-weight: bold; margin: 5px 0 0 0; text-transform: uppercase; }
-
-        /* Bottom Left: Mini-map */
-        #minimap-box { bottom: 20px; left: 20px; width: 200px; height: 150px; overflow: hidden; }
-        #minimap-canvas { width: 100%; height: 100%; background: rgba(52, 152, 219, 0.3); }
-
-        /* Bottom Right: Speedometer */
-        #speed-box { bottom: 20px; right: 20px; width: 150px; text-align: center; }
-        #speed-num { font-size: 40px; font-weight: bold; color: #2ecc71; }
-        #speed-unit { font-size: 16px; color: #aaa; }
-
-        /* Game Over Screen */
-        #game-over {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); flex-direction: column; align-items: center; justify-content: center;
-            pointer-events: auto; color: white; text-align: center; z-index: 10;
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
+        .bar { width: 200px; height: 20px; background: #444; border: 2px solid #fff; }
+        #health { width: 100%; height: 100%; background: #e74c3c; transition: 0.2s; }
+        #gameOver { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); display: none; flex-direction: column; 
+            align-items: center; justify-content: center; color: white; 
         }
-        #go-text { font-size: 90px; color: #e74c3c; margin: 0; text-shadow: 0 0 20px #e74c3c; }
-        #final-score { font-size: 30px; margin: 20px 0; }
-        button {
-            padding: 15px 40px; font-size: 24px; background: #f1c40f; color: #1a1a1a;
-            border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s;
-        }
-        button:hover { background: #fff; transform: scale(1.05); }
+        button { padding: 10px 20px; font-size: 20px; cursor: pointer; background: #2ecc71; border: none; color: white; }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-layer">
-        <div id="top-left" class="hud-box">
-            <div class="bar-container"><div id="health-bar"></div></div>
-            <div id="score-text">ALAMA: 0</div>
-        </div>
-
-        <div id="mission-box" class="hud-box">
-            <p id="mission-title">MISHENI:</p>
-            <p id="mission-text">FIKA KIJIJI CHA PILI</p>
-        </div>
-
-        <div id="minimap-box" class="hud-box">
-            <canvas id="minimap-canvas"></canvas>
-        </div>
-
-        <div id="speed-box" class="hud-box">
-            <div id="speed-num">0</div>
-            <div id="speed-unit">KM/H</div>
-        </div>
-
-        <div id="game-over">
-            <h1 id="go-text">SAFARI IMEISHIA HAPA!</h1>
-            <p id="final-score">Alama Zako: 0</p>
-            <button onclick="restartGame()">JARIBU TENA</button>
-        </div>
+    <div id="ui">
+        <div>AFYA:</div>
+        <div class="bar"><div id="health"></div></div>
+        <h2 id="score">ALAMA: 0</h2>
+        <div>KASI: <span id="speed">0</span> km/h</div>
     </div>
+
+    <div id="gameOver">
+        <h1>GAME OVER!</h1>
+        <h2 id="finalScore"></h2>
+        <button onclick="restartGame()">CHEZA TENA</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const mapCanvas = document.getElementById("minimap-canvas");
-        const mapCtx = mapCanvas.getContext("2d");
+        const healthBar = document.getElementById("health");
+        const scoreText = document.getElementById("score");
+        const speedNum = document.getElementById("speed");
+        const gameOverUI = document.getElementById("gameOver");
+        const finalScoreText = document.getElementById("finalScore");
 
-        // UI Updates
-        const healthBar = document.getElementById("health-bar");
-        const scoreText = document.getElementById("score-text");
-        const speedNum = document.getElementById("speed-num");
-        const gameOverUI = document.getElementById("game-over");
-        const finalScoreText = document.getElementById("final-score");
+        // --- MAREKEBISHO YA PICHA ---
+        const imgPikipiki = new Image();
+        imgPikipiki.src = "pikipiki.png"; // Hakikisha jina hili linafanana na faili la GitHub
+        // ----------------------------
 
-        // --- 4K Resolution Setup ---
-        let dpr, viewW, viewH;
-        function setup4K() {
-            dpr = window.devicePixelRatio || 1;
-            viewW = window.innerWidth;
-            viewH = window.innerHeight;
-            canvas.width = viewW * dpr;
-            canvas.height = viewH * dpr;
-            canvas.style.width = viewW + "px";
-            canvas.style.height = viewH + "px";
-            ctx.scale(dpr, dpr);
-            
-            // Minimap setup
-            mapCanvas.width = 200 * dpr;
-            mapCanvas.height = 150 * dpr;
-            mapCtx.scale(dpr, dpr);
-        }
-        setup4K();
-
-        // --- Game State & Assets ---
+        let viewW, viewH, groundY;
         let gameActive = true;
-        let frame = 0;
         let score = 0;
         let health = 100;
         let speed = 0;
-        let targetSpeed = 80;
-        let groundY = viewH - 150;
-        let screenShake = 0;
+        let targetSpeed = 50;
+        let frame = 0;
+        
+        const bike = { x: 50, y: 0, targetY: 0, w: 100, h: 80 };
+        const stone = { x: 0, y: 0, r: 30 };
+        const particles = [];
 
-        // Assets
-        const imgPikipiki = new Image();
-        imgPikipiki.src = 'pikipiki.png'; // LAZIMA faili hili liwepo kwenye folder
+        function setup() {
+            viewW = window.innerWidth;
+            viewH = window.innerHeight;
+            canvas.width = viewW;
+            canvas.height = viewH;
+            groundY = viewH * 0.7;
+            bike.y = groundY - bike.h;
+            bike.targetY = bike.y;
+            stone.x = viewW + 100;
+            stone.y = groundY - 10;
+        }
+        setup();
 
-        // Objects
-        let bike = { x: 150, y: groundY - 80, targetY: groundY - 80, w: 120, h: 90 };
-        let stone = { x: viewW + 200, y: groundY - 30, r: 40 };
-        let particles = [];
-        let trees = [];
-
-        // --- Input Handling (Mouse/Touch) ---
         window.addEventListener("mousemove", (e) => {
-            if (!gameActive) return;
-            // Pikipiki inafuata panya juu/chini kidogo (kama kukwepa mashimo)
-            let offY = (e.clientY - viewH / 2) * 0.2;
-            bike.targetY = (groundY - 80) + offY;
+            if(gameActive) bike.targetY = e.clientY - bike.h/2;
         });
 
-        // --- Functions ---
-
-        function createTree() {
-            if (Math.random() < 0.01 && trees.length < 5) {
-                trees.push({ x: viewW + 100, y: groundY - 120, w: 80, h: 150 });
+        window.addEventListener("touchmove", (e) => {
+            if(gameActive) {
+                bike.targetY = e.touches[0].clientY - bike.h/2;
+                e.preventDefault();
             }
-        }
+        }, {passive: false});
 
         function drawWorld() {
-            ctx.save();
-            // Screen Shake effect
-            if (screenShake > 0) {
-                ctx.translate(Math.random() * screenShake - screenShake/2, Math.random() * screenShake - screenShake/2);
-                screenShake *= 0.9; // Punguza mtikisiko taratibu
-            }
+            ctx.clearRect(0, 0, viewW, viewH);
 
-            // Anga (Gradient)
-            let grad = ctx.createLinearGradient(0, 0, 0, viewH);
-            grad.addColorStop(0, "#2980b9"); // Bluu nzito juu
-            grad.addColorStop(GroundY_Percent() / 100, "#87CEEB"); // Bluu hafifu karibu na ardhi
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, viewW, viewH);
+            // Anga
+            ctx.fillStyle = "#3498db";
+            ctx.fillRect(0, 0, viewW, groundY);
 
-            // Mawingu (Rahisi)
-            ctx.fillStyle = "rgba(255,255,255,0.8)";
-            for(let i=0; i<3; i++) {
-                let cx = (viewW * 0.3 * i + frame * 0.5) % (viewW + 200) - 100;
-                ctx.beginPath(); ctx.arc(cx, 100 + i*20, 40, 0, Math.PI*2); ctx.arc(cx+30, 110 + i*20, 35, 0, Math.PI*2); ctx.fill();
-            }
-
-            // Mibuyu & Miti
-            trees.forEach((tree, i) => {
-                tree.x -= speed * 0.05; // Inasogea polepole (Parallax)
-                if (tree.x < -100) trees.splice(i, 1);
-                // Chora umbo la Mbuyu (Mstatili + Duara kubwa)
-                ctx.fillStyle = "#a1887f"; // Rangi ya gome
-                ctx.fillRect(tree.x + 20, tree.y, tree.w - 40, tree.h); // Shina
-                ctx.fillStyle = "#2ecc71"; // Majani
-                ctx.beginPath(); ctx.arc(tree.x + tree.w/2, tree.y - 10, 60, 0, Math.PI*2); ctx.fill();
-            });
-
-            // Polini (Ardhi yenye mabonde)
+            // Polini (Ardhi)
             ctx.beginPath();
             ctx.moveTo(0, viewH);
-            ctx.fillStyle = "#d2b48c"; // Tan/Vumbi color
+            ctx.fillStyle = "#d2b48c";
             for (let x = 0; x <= viewW; x += 10) {
                 let y = Math.sin((x + frame) * 0.005) * 20 + groundY;
                 ctx.lineTo(x, y);
@@ -195,7 +107,7 @@
             ctx.fillStyle = "#7f8c8d";
             ctx.beginPath(); ctx.arc(stone.x, stone.y, stone.r, 0, Math.PI*2); ctx.fill();
 
-            // Moshi (Particles)
+            // Moshi
             particles.forEach((p, i) => {
                 p.x -= speed * 0.1; p.y -= 1; p.o -= 0.02; p.s += 0.5;
                 if (p.o <= 0) particles.splice(i, 1);
@@ -203,29 +115,16 @@
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
             });
 
-            // Pikipiki (Big P)
-            if (imgPikipiki.complete) {
+            // CHORA PIKIPIKI
+            if (imgPikipiki.complete && imgPikipiki.naturalWidth !== 0) {
                 ctx.drawImage(imgPikipiki, bike.x, bike.y, bike.w, bike.h);
             } else {
-                // Placeholder kama picha haijatokea
-                ctx.fillStyle = "#f1c40f"; ctx.fillRect(bike.x, bike.y, bike.w, bike.h);
-                ctx.fillStyle = "white"; ctx.fillText("BIG P", bike.x+10, bike.y+30);
+                // Hii itatokea kama picha bado inapakuliwa au haijapatikana
+                ctx.fillStyle = "#f1c40f"; 
+                ctx.fillRect(bike.x, bike.y, bike.w, bike.h);
+                ctx.fillStyle = "black";
+                ctx.fillText("Inapakia...", bike.x + 10, bike.y + 40);
             }
-
-            ctx.restore();
-        }
-
-        function drawMinimap() {
-            mapCtx.clearRect(0, 0, 200, 150);
-            // Chora njia rahisi
-            mapCtx.strokeStyle = "#fff"; mapCtx.lineWidth = 2;
-            mapCtx.beginPath(); mapCtx.moveTo(20, 130); mapCtx.lineTo(180, 20); mapCtx.stroke();
-            // Alama ya mchezaji (Kijani)
-            let mapProgress = (score % 5000) / 5000; // Rudia mapa kila alama 5000
-            let mx = 20 + 160 * mapProgress;
-            let my = 130 - 110 * mapProgress;
-            mapCtx.fillStyle = "#2ecc71";
-            mapCtx.beginPath(); mapCtx.arc(mx, my, 5, 0, Math.PI*2); mapCtx.fill();
         }
 
         function update() {
@@ -233,45 +132,32 @@
 
             frame += speed * 0.1;
             score += speed * 0.01;
-            
-            // Smooth movement & Speed
             bike.y += (bike.targetY - bike.y) * 0.1;
             speed += (targetSpeed - speed) * 0.01;
 
-            // Objects movement
             stone.x -= speed * 0.1;
             if (stone.x < -100) stone.x = viewW + Math.random() * 1000;
 
-            createTree();
-
-            // Moshi creation
             if (frame % 5 < 1) {
                 particles.push({ x: bike.x + 10, y: bike.y + bike.h - 10, s: Math.random()*5+2, o: 1 });
             }
 
-            // Collision Detection
+            // Mgongano (Collision)
             let dx = (bike.x + bike.w/2) - stone.x;
             let dy = (bike.y + bike.h/2) - stone.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
             if (dist < stone.r + bike.h/2 - 10) {
-                health -= 20;
-                screenShake = 20; // Anza mtikisiko
-                stone.x = viewW + 500; // Sukuma jiwe mbali
+                health -= 1; // Punguza afya polepole ikigusa
                 if (health <= 0) endGame();
             }
 
-            // Update UI
             healthBar.style.width = health + "%";
             scoreText.innerText = "ALAMA: " + Math.floor(score);
             speedNum.innerText = Math.floor(speed);
 
             drawWorld();
-            drawMinimap();
-
             requestAnimationFrame(update);
         }
-
-        function GroundY_Percent() { return (groundY / viewH) * 100; }
 
         function endGame() {
             gameActive = false;
@@ -283,9 +169,8 @@
             location.reload();
         }
 
-        // Anza
         update();
-        window.onresize = setup4K;
+        window.onresize = setup;
 
     </script>
 </body>
