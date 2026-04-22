@@ -3,42 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big P - Mjini Moja kwa Moja</title>
+    <title>Big P - Polini MT-10 Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
         canvas { display: block; width: 100vw; height: 100vh; }
-        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 10; text-shadow: 2px 2px 4px #000; }
-        .bar { width: 250px; height: 15px; background: #444; border: 2px solid #fff; border-radius: 10px; overflow: hidden; }
-        #health { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4d4d, #e74c3c); transition: 0.2s; }
-        #startPrompt, #gameOver { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; color: white; z-index: 30;
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 10; }
+        .bar { width: 180px; height: 15px; background: #444; border: 2px solid #fff; border-radius: 5px; }
+        #health { width: 100%; height: 100%; background: #e74c3c; transition: 0.2s; }
+        
+        /* Pause Button */
+        #pauseBtn { 
+            position: absolute; top: 10px; right: 10px; z-index: 40;
+            padding: 10px 20px; background: #f1c40f; border: none; 
+            font-weight: bold; cursor: pointer; border-radius: 5px;
         }
-        button { padding: 15px 40px; font-size: 20px; cursor: pointer; background: #2ecc71; border: none; color: white; border-radius: 50px; font-weight: bold; }
-        button:hover { background: #27ae60; transform: scale(1.05); }
+
+        #startPrompt, #gameOver, #pauseMenu { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; color: white; z-index: 50;
+        }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #2ecc71; border: none; color: white; border-radius: 10px; margin: 10px; }
+        #brakeIndicator { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: #e74c3c; font-weight: bold; display: none; font-size: 24px; }
     </style>
 </head>
 <body>
 
+    <button id="pauseBtn" onclick="togglePause()">PAUSE</button>
+
     <div id="startPrompt">
-        <h1 style="color: #3498db;">🔵🔴 BIG P - MJINI RUN</h1>
-        <p>Gusa screen au tumia mouse kukwepa mawe!</p>
-        <button onclick="startGame()">WASHA INJINI</button>
+        <h1>🏍️ POLINI MT-10 RUN</h1>
+        <p>Shikilia (Hold) popote kufunga **BREKI**</p>
+        <button onclick="startGame()">ANZA</button>
     </div>
 
-    <div id="ui">
-        <div>AFYA YA MT-10:</div>
-        <div class="bar"><div id="health"></div></div>
-        <h1 id="score" style="margin: 5px 0;">ALAMA: 0</h1>
-        <div>KASI: <span id="speedDisplay">0</span> KM/H</div>
+    <div id="pauseMenu" style="display:none;">
+        <h1>MCHEZO UMESIMAMA</h1>
+        <button onclick="togglePause()">ENDELEA</button>
     </div>
 
     <div id="gameOver" style="display:none;">
-        <h1 style="color: #e74c3c;">💥 IMEGONGWA!</h1>
+        <h1>💥 IMEGONGWA!</h1>
         <h2 id="finalScore"></h2>
-        <button onclick="restartGame()">JARIBU TENA</button>
+        <button onclick="location.reload()">JARIBU TENA</button>
     </div>
+
+    <div id="ui">
+        <div>AFYA:</div>
+        <div class="bar"><div id="health"></div></div>
+        <h2 id="score">ALAMA: 0</h2>
+        <div>KASI: <span id="speedVal">0</span> KM/H</div>
+    </div>
+
+    <div id="brakeIndicator">!!! BREKI !!!</div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -47,109 +64,128 @@
         const ctx = canvas.getContext("2d");
         const healthBar = document.getElementById("health");
         const scoreText = document.getElementById("score");
-        const speedNum = document.getElementById("speedDisplay");
-        const gameOverUI = document.getElementById("gameOver");
-        const startPrompt = document.getElementById("startPrompt");
-        const finalScoreText = document.getElementById("finalScore");
+        const speedNum = document.getElementById("speedVal");
+        const brakeUI = document.getElementById("brakeIndicator");
 
         const imgPikipiki = new Image();
-        imgPikipiki.src = "pikipiki.png"; // Picha yako ileile
+        imgPikipiki.src = "pikipiki.png"; 
 
-        let viewW, viewH;
+        let viewW, viewH, groundY;
         let gameActive = false;
+        let isPaused = false;
+        let isBraking = false;
         let score = 0;
         let health = 100;
         let speed = 0;
         let frame = 0;
-        let bgOffset = 0;
         
-        // MAREKEBISHO YA UKUBWA (Kubwa kidogo kuliko ya kwanza, lakini isizibe kila kitu)
-        const bike = { x: 80, y: 0, targetY: 0, w: 220, h: 140 }; 
+        // Ukubwa wa Yamaha MT-10
+        const bike = { x: 50, y: 0, targetY: 0, w: 200, h: 140 }; 
         const stone = { x: 0, y: 0, r: 25 };
+        const particles = [];
 
         function setup() {
             viewW = window.innerWidth;
             viewH = window.innerHeight;
             canvas.width = viewW;
             canvas.height = viewH;
-            bike.y = viewH / 2 - bike.h / 2;
+            groundY = viewH * 0.7;
+            bike.y = groundY - bike.h;
             bike.targetY = bike.y;
             stone.x = viewW + 300;
         }
         setup();
 
-        function startGame() {
-            startPrompt.style.display = "none";
-            gameActive = true;
-            update();
-        }
+        // Control za Breki
+        window.addEventListener("mousedown", () => { if(gameActive && !isPaused) isBraking = true; });
+        window.addEventListener("mouseup", () => isBraking = false);
+        window.addEventListener("touchstart", (e) => { if(gameActive && !isPaused) isBraking = true; e.preventDefault(); }, {passive: false});
+        window.addEventListener("touchend", () => isBraking = false);
 
+        // Control za Uongozi
         window.addEventListener("mousemove", (e) => {
-            if(gameActive) bike.targetY = Math.max(50, Math.min(e.clientY - bike.h/2, viewH - 150));
+            if(gameActive && !isPaused) bike.targetY = e.clientY - bike.h/2;
+        });
+        window.addEventListener("touchmove", (e) => {
+            if(gameActive && !isPaused) bike.targetY = e.touches[0].clientY - bike.h/2;
         });
 
-        window.addEventListener("touchmove", (e) => {
-            if(gameActive) {
-                bike.targetY = Math.max(50, Math.min(e.touches[0].clientY - bike.h/2, viewH - 150));
-                e.preventDefault();
-            }
-        }, {passive: false});
+        function togglePause() {
+            if(!gameActive) return;
+            isPaused = !isPaused;
+            document.getElementById("pauseMenu").style.display = isPaused ? "flex" : "none";
+        }
+
+        function startGame() {
+            document.getElementById("startPrompt").style.display = "none";
+            gameActive = true;
+            speed = 50;
+            update();
+        }
 
         function drawWorld() {
             ctx.clearRect(0, 0, viewW, viewH);
 
-            // 1. CHORA BACKGROUND INAYOJIRUDIA (Kutoka kwenye picha yenyewe)
-            if (imgPikipiki.complete && imgPikipiki.naturalWidth !== 0) {
-                bgOffset -= speed * 0.1; // Background inasogea taratibu
-                if(bgOffset <= -viewW) bgOffset = 0;
+            // Anga la Polini
+            ctx.fillStyle = "#3498db";
+            ctx.fillRect(0, 0, viewW, groundY);
 
-                // Tunachora picha mbili zinazofuatana ili kujaza screen
-                ctx.drawImage(imgPikipiki, bgOffset, 0, viewW, viewH);
-                ctx.drawImage(imgPikipiki, bgOffset + viewW, 0, viewW, viewH);
-                
-                // --- ONGEZA ATHARI YA TAA ZA BLUE/NYEKUNDU ---
-                // Taa zinaenda kulingana na frame ili zifanane na zile za kwenye picha
-                frame++;
-                let redFlash = Math.sin(frame * 0.05) * 0.3 + 0.5;
-                let blueFlash = Math.cos(frame * 0.05) * 0.3 + 0.5;
-
-                ctx.fillStyle = `rgba(231, 76, 60, ${redFlash * 0.15})`; // Red
-                ctx.fillRect(0, 0, viewW, viewH);
-                ctx.fillStyle = `rgba(52, 152, 219, ${blueFlash * 0.15})`; // Blue
-                ctx.fillRect(0, 0, viewW, viewH);
-                // ------------------------------------------
-
-            } else {
-                // Kama picha haijapakiwa, weka giza
-                ctx.fillStyle = "#000"; ctx.fillRect(0, 0, viewW, viewH);
+            // Ardhi ya Polini (Mabonde ya mchanga)
+            ctx.beginPath();
+            ctx.moveTo(0, viewH);
+            ctx.fillStyle = "#d2b48c";
+            for (let x = 0; x <= viewW; x += 10) {
+                let y = Math.sin((x + frame) * 0.005) * 20 + groundY;
+                ctx.lineTo(x, y);
             }
+            ctx.lineTo(viewW, viewH);
+            ctx.fill();
 
-            // 2. CHORA JIWE (Kikwazo cha giza kidogo)
-            ctx.fillStyle = "rgba(100, 100, 100, 0.8)";
+            // Jiwe
+            ctx.fillStyle = "#7f8c8d";
             ctx.beginPath(); ctx.arc(stone.x, stone.y, stone.r, 0, Math.PI*2); ctx.fill();
 
-            // 3. CHORA PIKIPIKI (Inakaa juu ya background)
+            // Moshi wa Breki
+            particles.forEach((p, i) => {
+                p.x -= speed * 0.1; p.o -= 0.02;
+                ctx.fillStyle = `rgba(255,255,255,${p.o})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
+                if(p.o <= 0) particles.splice(i, 1);
+            });
+
+            // Chora Yamaha MT-10
             if (imgPikipiki.complete) {
-                // Tunasafisha muonekano kidogo ili asizibe kila kitu
-                ctx.globalAlpha = 0.95; 
                 ctx.drawImage(imgPikipiki, bike.x, bike.y, bike.w, bike.h);
-                ctx.globalAlpha = 1;
             }
         }
 
         function update() {
-            if (!gameActive) return;
+            if (!gameActive || isPaused) {
+                if(isPaused) requestAnimationFrame(update);
+                return;
+            }
 
-            score += 0.2;
+            // Logiki ya Speed na Breki
+            if (isBraking) {
+                speed -= 1.5;
+                if (speed < 20) speed = 20;
+                brakeUI.style.display = "block";
+                particles.push({ x: bike.x + 20, y: bike.y + bike.h - 10, s: Math.random()*8+2, o: 0.8 });
+            } else {
+                speed += 0.2;
+                if (speed > 100) speed = 100;
+                brakeUI.style.display = "none";
+            }
+
+            frame += speed * 0.2;
+            score += speed * 0.01;
             bike.y += (bike.targetY - bike.y) * 0.1;
-            speed = 70; // Kasi ya kudumu
 
-            // Jiwe linakuja kwa kasi
+            // Jiwe linakuja
             stone.x -= speed * 0.15;
             if (stone.x < -100) {
-                stone.x = viewW + 500;
-                // Jiwe linatokea popote kwenye screen sasa, siyo chini tu
-                stone.y = 100 + Math.random() * (viewH - 200);
+                stone.x = viewW + 300;
+                stone.y = groundY + (Math.random() * 150 - 50);
             }
 
             // Mgongano
@@ -161,20 +197,19 @@
                 stone.x = -200;
                 if (health <= 0) {
                     gameActive = false;
-                    finalScoreText.innerText = "Alama Ulizopata: " + Math.floor(score);
-                    gameOverUI.style.display = "flex";
+                    document.getElementById("gameOver").style.display = "flex";
+                    document.getElementById("finalScore").innerText = "Alama: " + Math.floor(score);
                 }
             }
 
             healthBar.style.width = health + "%";
             scoreText.innerText = "ALAMA: " + Math.floor(score);
-            speedNum.innerText = speed;
+            speedNum.innerText = Math.floor(speed);
 
             drawWorld();
             requestAnimationFrame(update);
         }
 
-        function restartGame() { location.reload(); }
         window.onresize = setup;
     </script>
 </body>
